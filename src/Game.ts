@@ -1,28 +1,27 @@
 import { Game } from 'boardgame.io'
+import { Stage } from 'boardgame.io/core'
+
 // import { INVALID_MOVE } from 'boardgame.io/core'
 
 export interface WordleState {
-  guesses: string[]
-  isRevealing?: boolean
-  selectedChar: string
+  currentGuess: string
+  pendingChar: string
 }
 
 export const Wordle: Game<WordleState> = {
-  setup: () => ({ guesses: [''], isRevealing: false, selectedChar: '' }),
+  setup: () => ({
+    currentGuess: '',
+    pendingChar: '',
+  }),
 
   turn: {
-    moveLimit: 5,
+    activePlayers: { all: Stage.NULL },
+    // moveLimit: 5,
   },
 
   moves: {
-    setGuesses: (G, ctx, guesses) => {
-      G.guesses = guesses
-    },
-    setIsRevealing: (G, ctx, isRevealing) => {
-      G.isRevealing = isRevealing
-    },
-    selectChar: (G, ctx, char) => {
-      G.selectedChar = char
+    updateG: (G, ctx, update) => {
+      return { ...G, ...update }
     },
   },
 }

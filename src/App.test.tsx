@@ -1,6 +1,6 @@
 import React from 'react'
 import { render, screen } from '@testing-library/react'
-import App from './OldApp'
+import { DisplayClient as App } from './App'
 import { GAME_TITLE } from './constants/strings'
 
 beforeEach(() => {

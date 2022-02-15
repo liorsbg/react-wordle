@@ -50,12 +50,16 @@ import './App.css'
 
 interface WordleProps extends BoardProps<WordleState> {}
 
-export const Board = ({ G, ctx, moves }: WordleProps) => {
+export const Controller = ({ G, ctx, moves }: WordleProps) => {
   const prefersDarkMode = window.matchMedia(
     '(prefers-color-scheme: dark)'
   ).matches
 
-  const [currentGuess, setCurrentGuess] = useState('')
+  const [currentGuess] = useState('')
+  const setCurrentGuess = (guess: string) => {
+    moves.updateG({ currentGuess: guess })
+  }
+
   const [isGameWon, setIsGameWon] = useState(false)
   const [isInfoModalOpen, setIsInfoModalOpen] = useState(false)
   const [isAboutModalOpen, setIsAboutModalOpen] = useState(false)
@@ -143,109 +147,7 @@ export const Board = ({ G, ctx, moves }: WordleProps) => {
 
   useEffect(() => {
     saveGameStateToLocalStorage({ guesses, solution })
-    moves.setGuesses(guesses)
-  }, [guesses, moves])
-
-  useEffect(() => {
-    moves.setIsRevealing(isRevealing)
-  }, [isRevealing, moves])
-
-  useEffect(() => {
-    const onChar = (value: string) => {
-      if (
-        currentGuess.length < MAX_WORD_LENGTH &&
-        guesses.length < MAX_CHALLENGES &&
-        !isGameWon
-      ) {
-        setCurrentGuess(`${currentGuess}${value}`)
-      }
-    }
-
-    const onDelete = () => {
-      setCurrentGuess(currentGuess.slice(0, -1))
-    }
-
-    const onEnter = () => {
-      if (isGameWon || isGameLost) {
-        return
-      }
-      if (!(currentGuess.length === MAX_WORD_LENGTH)) {
-        setIsNotEnoughLetters(true)
-        setCurrentRowClass('jiggle')
-        return setTimeout(() => {
-          setIsNotEnoughLetters(false)
-          setCurrentRowClass('')
-        }, ALERT_TIME_MS)
-      }
-
-      if (!isWordInWordList(currentGuess)) {
-        setIsWordNotFoundAlertOpen(true)
-        setCurrentRowClass('jiggle')
-        return setTimeout(() => {
-          setIsWordNotFoundAlertOpen(false)
-          setCurrentRowClass('')
-        }, ALERT_TIME_MS)
-      }
-
-      // enforce hard mode - all guesses must contain all previously revealed letters
-      if (isHardMode) {
-        const firstMissingReveal = findFirstUnusedReveal(currentGuess, guesses)
-        if (firstMissingReveal) {
-          setIsMissingLetterMessage(firstMissingReveal)
-          setIsMissingPreviousLetters(true)
-          setCurrentRowClass('jiggle')
-          return setTimeout(() => {
-            setIsMissingPreviousLetters(false)
-            setCurrentRowClass('')
-          }, ALERT_TIME_MS)
-        }
-      }
-
-      setIsRevealing(true)
-      // turn this back off after all
-      // chars have been revealed
-      setTimeout(() => {
-        setIsRevealing(false)
-      }, REVEAL_TIME_MS * MAX_WORD_LENGTH)
-
-      const winningWord = isWinningWord(currentGuess)
-
-      if (
-        currentGuess.length === MAX_WORD_LENGTH &&
-        guesses.length < MAX_CHALLENGES &&
-        !isGameWon
-      ) {
-        setGuesses([...guesses, currentGuess])
-        setCurrentGuess('')
-
-        if (winningWord) {
-          setStats(addStatsForCompletedGame(stats, guesses.length))
-          return setIsGameWon(true)
-        }
-
-        if (guesses.length === MAX_CHALLENGES - 1) {
-          setStats(addStatsForCompletedGame(stats, guesses.length + 1))
-          setIsGameLost(true)
-        }
-      }
-    }
-    const value = G.selectedChar
-    if (value === 'ENTER') {
-      onEnter()
-    } else if (value === 'DELETE') {
-      onDelete()
-    } else {
-      onChar(value)
-    }
-  }, [
-    G.selectedChar,
-    currentGuess,
-    guesses,
-    isGameLost,
-    isGameWon,
-    isHardMode,
-    stats,
-  ])
+  }, [guesses])
 
   useEffect(() => {
     if (isGameWon) {
@@ -267,39 +169,94 @@ export const Board = ({ G, ctx, moves }: WordleProps) => {
     }
   }, [isGameWon, isGameLost])
 
+  const onChar = (value: string) => {
+    moves.updateG({ pendingChar: value })
+    // if (
+    //   currentGuess.length < MAX_WORD_LENGTH &&
+    //   guesses.length < MAX_CHALLENGES &&
+    //   !isGameWon
+    // ) {
+    //   setCurrentGuess(`${currentGuess}${value}`)
+    // }
+  }
+
+  const onDelete = () => {
+    moves.updateG({ pendingChar: 'DELETE' })
+    // setCurrentGuess(currentGuess.slice(0, -1))
+  }
+
+  const onEnter = () => {
+    moves.updateG({ pendingChar: 'ENTER' })
+    // if (isGameWon || isGameLost) {
+    //   return
+    // }
+    // if (!(currentGuess.length === MAX_WORD_LENGTH)) {
+    //   setIsNotEnoughLetters(true)
+    //   setCurrentRowClass('jiggle')
+    //   return setTimeout(() => {
+    //     setIsNotEnoughLetters(false)
+    //     setCurrentRowClass('')
+    //   }, ALERT_TIME_MS)
+    // }
+
+    // if (!isWordInWordList(currentGuess)) {
+    //   setIsWordNotFoundAlertOpen(true)
+    //   setCurrentRowClass('jiggle')
+    //   return setTimeout(() => {
+    //     setIsWordNotFoundAlertOpen(false)
+    //     setCurrentRowClass('')
+    //   }, ALERT_TIME_MS)
+    // }
+
+    // // enforce hard mode - all guesses must contain all previously revealed letters
+    // if (isHardMode) {
+    //   const firstMissingReveal = findFirstUnusedReveal(currentGuess, guesses)
+    //   if (firstMissingReveal) {
+    //     setIsMissingLetterMessage(firstMissingReveal)
+    //     setIsMissingPreviousLetters(true)
+    //     setCurrentRowClass('jiggle')
+    //     return setTimeout(() => {
+    //       setIsMissingPreviousLetters(false)
+    //       setCurrentRowClass('')
+    //     }, ALERT_TIME_MS)
+    //   }
+    // }
+
+    // setIsRevealing(true)
+    // // turn this back off after all
+    // // chars have been revealed
+    // setTimeout(() => {
+    //   setIsRevealing(false)
+    // }, REVEAL_TIME_MS * MAX_WORD_LENGTH)
+
+    // const winningWord = isWinningWord(currentGuess)
+
+    // if (
+    //   currentGuess.length === MAX_WORD_LENGTH &&
+    //   guesses.length < MAX_CHALLENGES &&
+    //   !isGameWon
+    // ) {
+    //   setGuesses([...guesses, currentGuess])
+    //   setCurrentGuess('')
+
+    //   if (winningWord) {
+    //     setStats(addStatsForCompletedGame(stats, guesses.length))
+    //     return setIsGameWon(true)
+    //   }
+
+    //   if (guesses.length === MAX_CHALLENGES - 1) {
+    //     setStats(addStatsForCompletedGame(stats, guesses.length + 1))
+    //     setIsGameLost(true)
+    //   }
+    // }
+  }
+
   return (
     <div className="pt-2 pb-8 max-w-7xl mx-auto sm:px-6 lg:px-8">
-      <div className="flex w-80 mx-auto items-center mb-8 mt-20">
-        <h1 className="text-xl ml-2.5 grow font-bold dark:text-white">
-          {GAME_TITLE}
-        </h1>
-        <InformationCircleIcon
-          className="h-6 w-6 mr-2 cursor-pointer dark:stroke-white"
-          onClick={() => setIsInfoModalOpen(true)}
-        />
-        <ChartBarIcon
-          className="h-6 w-6 mr-3 cursor-pointer dark:stroke-white"
-          onClick={() => setIsStatsModalOpen(true)}
-        />
-        <CogIcon
-          className="h-6 w-6 mr-3 cursor-pointer dark:stroke-white"
-          onClick={() => setIsSettingsModalOpen(true)}
-        />
-      </div>
-      <Grid
-        guesses={guesses}
-        currentGuess={currentGuess}
-        isRevealing={isRevealing}
-        currentRowClassName={currentRowClass}
-      />
       <Keyboard
-        // onChar={onChar}
-        // onDelete={onDelete}
-        // onEnter={onEnter}
-        onClick={(value) => {
-          console.log(`Clicked ${value}`)
-          moves.selectChar(value)
-        }}
+        onChar={onChar}
+        onDelete={onDelete}
+        onEnter={onEnter}
         guesses={guesses}
         isRevealing={isRevealing}
       />

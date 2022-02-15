@@ -1,3 +1,7 @@
+import { useCallback } from 'react'
+import { BoardProps } from 'boardgame.io/react'
+import { WordleState } from './Game'
+
 import {
   InformationCircleIcon,
   ChartBarIcon,
@@ -6,7 +10,6 @@ import {
 import { useState, useEffect } from 'react'
 import { Alert } from './components/alerts/Alert'
 import { Grid } from './components/grid/Grid'
-import { Keyboard } from './components/keyboard/Keyboard'
 import { AboutModal } from './components/modals/AboutModal'
 import { InfoModal } from './components/modals/InfoModal'
 import { StatsModal } from './components/modals/StatsModal'
@@ -15,7 +18,6 @@ import {
   GAME_TITLE,
   WIN_MESSAGES,
   GAME_COPIED_MESSAGE,
-  ABOUT_GAME_MESSAGE,
   NOT_ENOUGH_LETTERS_MESSAGE,
   WORD_NOT_FOUND_MESSAGE,
   CORRECT_WORD_MESSAGE,
@@ -43,7 +45,9 @@ import {
 
 import './App.css'
 
-function App() {
+interface WordleProps extends BoardProps<WordleState> {}
+
+export const Display = ({ G, ctx, moves }: WordleProps) => {
   const prefersDarkMode = window.matchMedia(
     '(prefers-color-scheme: dark)'
   ).matches
@@ -158,21 +162,24 @@ function App() {
     }
   }, [isGameWon, isGameLost])
 
-  const onChar = (value: string) => {
-    if (
-      currentGuess.length < MAX_WORD_LENGTH &&
-      guesses.length < MAX_CHALLENGES &&
-      !isGameWon
-    ) {
-      setCurrentGuess(`${currentGuess}${value}`)
-    }
-  }
+  const onChar = useCallback(
+    (value: string) => {
+      if (
+        currentGuess.length < MAX_WORD_LENGTH &&
+        guesses.length < MAX_CHALLENGES &&
+        !isGameWon
+      ) {
+        setCurrentGuess(`${currentGuess}${value}`)
+      }
+    },
+    [currentGuess, guesses.length, isGameWon]
+  )
 
-  const onDelete = () => {
+  const onDelete = useCallback(() => {
     setCurrentGuess(currentGuess.slice(0, -1))
-  }
+  }, [currentGuess])
 
-  const onEnter = () => {
+  const onEnter = useCallback(() => {
     if (isGameWon || isGameLost) {
       return
     }
@@ -235,7 +242,22 @@ function App() {
         setIsGameLost(true)
       }
     }
-  }
+  }, [currentGuess, guesses, isGameLost, isGameWon, isHardMode, stats])
+
+  useEffect(() => {
+    const value = G.pendingChar
+    if (value !== '') {
+      console.log('pendingChar non-empty, running onChar')
+      if (value === 'DELETE') {
+        onDelete()
+      } else if (value === 'ENTER') {
+        onEnter()
+      } else {
+        onChar(value)
+      }
+      moves.updateG({ pendingChar: '' })
+    }
+  }, [G.pendingChar, onChar, onDelete, onEnter, moves])
 
   return (
     <div className="pt-2 pb-8 max-w-7xl mx-auto sm:px-6 lg:px-8">
@@ -261,13 +283,6 @@ function App() {
         currentGuess={currentGuess}
         isRevealing={isRevealing}
         currentRowClassName={currentRowClass}
-      />
-      <Keyboard
-        onChar={onChar}
-        onDelete={onDelete}
-        onEnter={onEnter}
-        guesses={guesses}
-        isRevealing={isRevealing}
       />
       <InfoModal
         isOpen={isInfoModalOpen}
@@ -302,14 +317,6 @@ function App() {
         handleHighContrastMode={handleHighContrastMode}
       />
 
-      <button
-        type="button"
-        className="mx-auto mt-8 flex items-center px-2.5 py-1.5 border border-transparent text-xs font-medium rounded text-indigo-700 bg-indigo-100 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 select-none"
-        onClick={() => setIsAboutModalOpen(true)}
-      >
-        {ABOUT_GAME_MESSAGE}
-      </button>
-
       <Alert message={NOT_ENOUGH_LETTERS_MESSAGE} isOpen={isNotEnoughLetters} />
       <Alert
         message={WORD_NOT_FOUND_MESSAGE}
@@ -329,5 +336,3 @@ function App() {
     </div>
   )
 }
-
-export default App
